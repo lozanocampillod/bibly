@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Reference } from "./ReferenceList";
@@ -28,6 +28,14 @@ export function ReviewTab({ list, onUpdate }: Props) {
   const [showResult, setShowResult] = useState(false);
   const [lastCorrect, setLastCorrect] = useState<boolean | null>(null);
   const [done, setDone] = useState(false);
+
+  // Effect: If bibliography list changes and due items exist, reset 'done' so user can start review again
+  React.useEffect(() => {
+    const dueNow = !!pickNextReference(list);
+    if (done && dueNow) {
+      setDone(false);
+    }
+  }, [list, done]);
   const [libreQueue, setLibreQueue] = useState<SM2Reference[]>([]);
   const [history, setHistory] = useState<ReviewHistoryItem[]>(() => loadReviewHistory());
 
@@ -154,8 +162,87 @@ export function ReviewTab({ list, onUpdate }: Props) {
 
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[300px] w-full">
-      {/* --- SUMMARY DASHBOARD --- */}
+    <div className="flex flex-col items-center justify-center min-h-[300px] w-full gap-8">
+        {!reviewing && (
+        <div className="flex gap-4 items-center">
+          <Button
+            size="lg"
+            className="px-8 py-4 text-lg rounded-full shadow-md"
+            onClick={startReview}
+            disabled={stats.due === 0}
+            aria-disabled={stats.due === 0}
+          >
+            Start review
+          </Button>
+          <Button size="lg" className="px-8 py-4 text-lg rounded-full shadow-md" variant="secondary" onClick={startLibre}>
+            Review all
+          </Button>
+        </div>
+      )}
+      {reviewing && current && fieldToGuess && (
+        <Card className="w-full max-w-xl mt-8 bg-white/80 shadow-lg border border-muted-foreground/10 rounded-xl animate-in fade-in duration-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg font-bold tracking-tight">Spaced Repetition Study</CardTitle>
+            <p className="text-sm text-muted-foreground font-normal mt-1">Active recall for long-term memory</p>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-muted/60 rounded-lg px-4 py-3 flex flex-col gap-1 border border-muted-foreground/10">
+                <span className="text-xs text-muted-foreground mb-1">Reference</span>
+                <span className="font-semibold text-base truncate" title={current.title}>{current.title}</span>
+              </div>
+              <div className="bg-muted/60 rounded-lg px-4 py-3 flex flex-col gap-1 border border-muted-foreground/10">
+                <span className="text-xs text-muted-foreground mb-1">Field to guess</span>
+                <span className="inline-block px-2 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium w-fit">{fieldToGuess}</span>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="font-semibold text-sm" htmlFor="review-answer">Your answer</label>
+              <Input
+                id="review-answer"
+                className="mb-1"
+                placeholder={`Type the ${fieldToGuess}...`}
+                value={answer}
+                onChange={e => setAnswer(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter" && !showResult) handleCheck();
+                }}
+                disabled={showResult}
+                autoFocus
+              />
+              {!showResult && (
+                <Button className="mt-1 w-full" onClick={handleCheck}>
+                  Check
+                </Button>
+              )}
+            </div>
+            {showResult && (
+              <div className="flex flex-col gap-4 items-center">
+                <div className="flex flex-col items-center gap-2">
+                  <span className={`inline-block px-4 py-2 rounded-full text-base font-semibold ${lastCorrect ? "bg-green-100 text-green-800" : "bg-destructive/10 text-destructive"}`}>
+                    {lastCorrect ? "Correct!" : "Incorrect"}
+                  </span>
+                  {!lastCorrect && (
+                    <span className="text-sm text-muted-foreground text-center">Correct answer: <span className="font-semibold text-primary">{current[fieldToGuess as keyof SM2Reference]}</span></span>
+                  )}
+                </div>
+                <div className="flex flex-col items-center gap-2 w-full">
+                  <span className="text-xs text-muted-foreground">How easy was it?</span>
+                  <div className="flex gap-2 justify-center w-full">
+                    {[5, 4, 3, 2, 1, 0].map(g => (
+                      <Button key={g} variant="outline" size="sm" className="flex-1 min-w-[38px]" onClick={() => handleGrade(g)}>
+                        {g}
+                      </Button>
+                    ))}
+                  </div>
+                  <span className="text-xs text-muted-foreground mt-1">5 = Perfect, 0 = Total blackout</span>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {!reviewing && (
         <Card className="w-full max-w-2xl mb-10 bg-white/80 shadow-lg border border-gray-200">
           <CardHeader className="pb-2">
@@ -164,34 +251,56 @@ export function ReviewTab({ list, onUpdate }: Props) {
           </CardHeader>
           <CardContent>
             {/* Stats grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-3 gap-x-6 mb-6 text-base">
-              <div className="flex flex-col">
-                <span className="text-xs text-muted-foreground">Total</span>
-                <span className="font-semibold text-right text-primary text-lg">{stats.total}</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+              <div className="bg-muted/60 rounded-lg px-5 py-4 flex flex-col justify-between min-h-[82px] border border-muted-foreground/10">
+                <span className="text-xs text-muted-foreground mb-1">Total</span>
+                <span className="flex items-center justify-between">
+                  <span className="font-semibold text-lg">{stats.total}</span>
+                  <span className="inline-block px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium ml-2">refs</span>
+                </span>
               </div>
-              <div className="flex flex-col">
-                <span className="text-xs text-muted-foreground">Reviewed</span>
-                <span className="font-semibold text-right text-primary text-lg">{stats.reviewed}</span>
+              <div className="bg-muted/60 rounded-lg px-5 py-4 flex flex-col justify-between min-h-[82px] border border-muted-foreground/10">
+                <span className="text-xs text-muted-foreground mb-1">Reviewed</span>
+                <span className="flex items-center justify-between">
+                  <span className="font-semibold text-lg">{stats.reviewed}</span>
+                  <span className="inline-block px-2 py-0.5 rounded-full bg-green-100 text-green-800 text-xs font-medium ml-2">done</span>
+                </span>
               </div>
-              <div className="flex flex-col">
-                <span className="text-xs text-muted-foreground">Due</span>
-                <span className="font-semibold text-right text-primary text-lg">{stats.due}</span>
+              <div className="bg-muted/60 rounded-lg px-5 py-4 flex flex-col justify-between min-h-[82px] border border-muted-foreground/10">
+                <span className="text-xs text-muted-foreground mb-1">Due</span>
+                <span className="flex items-center justify-between">
+                  <span className="font-semibold text-lg">{stats.due}</span>
+                  <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ml-2 ${stats.due > 0 ? 'bg-yellow-100 text-yellow-800' : 'bg-muted text-muted-foreground'}`}>{stats.due > 0 ? 'due' : 'none'}</span>
+                </span>
               </div>
-              <div className="flex flex-col">
-                <span className="text-xs text-muted-foreground">Avg. interval</span>
-                <span className="font-semibold text-right">{stats.avgInterval.toFixed(1)}d</span>
+              <div className="bg-muted/60 rounded-lg px-5 py-4 flex flex-col justify-between min-h-[82px] border border-muted-foreground/10">
+                <span className="text-xs text-muted-foreground mb-1">Avg. interval</span>
+                <span className="flex items-center justify-between">
+                  <span className="font-semibold text-lg">{stats.avgInterval.toFixed(1)}d</span>
+                  <span className="inline-block px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-xs font-medium ml-2">days</span>
+                </span>
               </div>
-              <div className="flex flex-col">
-                <span className="text-xs text-muted-foreground">Avg. EF</span>
-                <span className="font-semibold text-right">{stats.avgEF.toFixed(2)}</span>
+              <div className="bg-muted/60 rounded-lg px-5 py-4 flex flex-col justify-between min-h-[82px] border border-muted-foreground/10">
+                <span className="text-xs text-muted-foreground mb-1">Avg. EF</span>
+                <span className="flex items-center justify-between">
+                  <span className="font-semibold text-lg">{stats.avgEF.toFixed(2)}</span>
+                  <span className="inline-block px-2 py-0.5 rounded-full bg-fuchsia-100 text-fuchsia-800 text-xs font-medium ml-2">EF</span>
+                </span>
               </div>
-              <div className="flex flex-col">
-                <span className="text-xs text-muted-foreground">Avg. reps</span>
-                <span className="font-semibold text-right">{stats.avgReps.toFixed(1)}</span>
+              <div className="bg-muted/60 rounded-lg px-5 py-4 flex flex-col justify-between min-h-[82px] border border-muted-foreground/10">
+                <span className="text-xs text-muted-foreground mb-1">Avg. reps</span>
+                <span className="flex items-center justify-between">
+                  <span className="font-semibold text-lg">{stats.avgReps.toFixed(1)}</span>
+                  <span className="inline-block px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-800 text-xs font-medium ml-2">reps</span>
+                </span>
               </div>
-              <div className="flex flex-col col-span-2 sm:col-span-2">
-                <span className="text-xs text-muted-foreground">Recent accuracy</span>
-                <span className="font-semibold text-right">{stats.accuracy !== null ? `${stats.accuracy}%` : 'N/A'}</span>
+              {/* Recent accuracy as a summary row */}
+              <div className="bg-background rounded-lg px-5 py-4 flex flex-col justify-between min-h-[82px] border border-muted-foreground/10 col-span-1 sm:col-span-2 lg:col-span-3">
+                <span className="text-xs text-muted-foreground mb-1">Recent accuracy</span>
+                <span className="flex items-center justify-between">
+                  <span className="font-semibold text-lg">{stats.accuracy !== null ? `${stats.accuracy}%` : 'N/A'}</span>
+                  <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ml-2 ${stats.accuracy !== null && stats.accuracy >= 80 ? 'bg-green-100 text-green-800' : stats.accuracy !== null && stats.accuracy >= 50 ? 'bg-yellow-100 text-yellow-800' : 'bg-destructive/10 text-destructive'}`}>{stats.accuracy !== null ? (stats.accuracy >= 80 ? 'great' : stats.accuracy >= 50 ? 'ok' : 'low') : ''}</span>
+                </span>
               </div>
             </div>
             {/* Progress bar */}
@@ -254,72 +363,7 @@ export function ReviewTab({ list, onUpdate }: Props) {
       )}
 
 
-      {/* --- REVIEW BUTTONS & FLOW --- */}
-      {!reviewing && !done && (
-        <div className="flex gap-4 items-center">
-          <Button
-            size="lg"
-            className="px-8 py-4 text-lg rounded-full shadow-md"
-            onClick={startReview}
-            disabled={stats.due === 0}
-            aria-disabled={stats.due === 0}
-          >
-            Start review
-          </Button>
-          <Button size="lg" className="px-8 py-4 text-lg rounded-full shadow-md" variant="secondary" onClick={startLibre}>
-            Review all
-          </Button>
-        </div>
-      )}
-      {done && (
-        <div className="text-center text-green-700 font-semibold text-lg py-10">
-          {modoLibre ? "Free review completed!" : "Review completed!"}
-        </div>
-      )}
-      {reviewing && current && fieldToGuess && (
-        <Card className="w-full max-w-xl shadow-lg border-primary animate-in fade-in duration-200 mt-4">
-          <CardHeader>
-            <CardTitle className="text-lg">Spaced Repetition Study</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="mb-2 text-base">
-              <span className="font-semibold">{FIELDS.filter(f => f.key !== fieldToGuess).slice(0,2).map(f => `${f.label}: ${current[f.key as keyof SM2Reference]}`).join(" · ")}</span>
-            </div>
-            <div className="mb-2">Guess the <span className="font-bold text-primary">{FIELDS.find(f => f.key === fieldToGuess)?.label}</span>:</div>
-            <div className="flex gap-2 mb-2">
-              <Input
-                value={answer}
-                onChange={e => setAnswer(e.target.value)}
-                placeholder={`Type the ${FIELDS.find(f => f.key === fieldToGuess)?.label?.toLowerCase()}`}
-                disabled={showResult}
-                className="max-w-xs"
-                onKeyDown={e => { if (e.key === 'Enter') handleCheck(); }}
-              />
-              {!showResult && (
-                <Button onClick={handleCheck} variant="default">Check</Button>
-              )}
-            </div>
-            {showResult && (
-              <div className={lastCorrect ? "text-green-600 font-semibold mb-2" : "text-destructive font-semibold mb-2"}>
-                {lastCorrect ? "Correct!" : `Incorrect. The answer was: "${current[fieldToGuess as keyof SM2Reference] ?? ""}"`}
-              </div>
-            )}
-            {showResult && (
-              <div className="flex gap-2 flex-wrap mt-2">
-                <span className="text-xs text-muted-foreground mr-2">How hard was it?</span>
-                {[5,4,3,2,1,0].map(grade => (
-                  <Button key={grade} variant={grade >= 3 ? "default" : "destructive"} onClick={() => handleGrade(grade)}>
-                    {grade} {grade===5?"(Perfect)":grade===0?"(Null)":""}
-                  </Button>
-                ))}
-              </div>
-            )}
-            <div className="mt-4 text-xs text-muted-foreground">
-              <span>Interval: {current.interval ?? 1} days</span> | <span>EF: {current.easeFactor?.toFixed(2) ?? '2.5'}</span> | <span>Next: {current.nextReview ? new Date(current.nextReview).toLocaleDateString() : '-'}</span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      
     </div>
   );
 }
