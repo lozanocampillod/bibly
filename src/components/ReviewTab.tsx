@@ -1,6 +1,5 @@
 "use client";
 import React from "react";
-import { Reference } from "./ReferenceList";
 import { SM2Reference } from "@/lib/spacedRepetition";
 import { useReviewSession } from "@/hooks/useReviewSession";
 import { ReviewCard } from "@/components/ReviewCard";
@@ -10,11 +9,11 @@ import { ReviewControls } from "@/components/ReviewControls";
 import { getReviewStats } from "@/lib/reviewStats";
 
 interface Props {
-  list: Reference[];
+  list: SM2Reference[];
   onUpdate: (list: SM2Reference[]) => void;
 }
 
-export function ReviewTab({ list, onUpdate }: { list: Reference[]; onUpdate: (list: SM2Reference[]) => void }) {
+export function ReviewTab({ list, onUpdate }: Props) {
   const {
     reviewing,
     current,

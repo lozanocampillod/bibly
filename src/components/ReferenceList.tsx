@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Trash2, Calendar, BookOpen, User, BookMarked, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
+import { FieldProgress, FieldKey } from "@/lib/spacedRepetition";
 export interface Reference {
   id: string;
   area: string;
@@ -11,10 +12,7 @@ export interface Reference {
   year: string;
   title: string;
   publisher: string;
-  nextReview: number;
-  interval: number;
-  repetition?: number;
-  easeFactor?: number;
+  fieldProgress: Partial<Record<FieldKey, FieldProgress>>;
 }
 
 interface Props {
@@ -29,7 +27,7 @@ export function ReferenceList({ list, onDelete }: Props) {
     year: "",
     publisher: "",
     area: "",
-    nextReview: ""
+    // nextReview filter removed
   });
 
   const filteredList = useMemo(() => {
@@ -62,8 +60,8 @@ export function ReferenceList({ list, onDelete }: Props) {
       authors: "",
       year: "",
       publisher: "",
-      area: "",
-      nextReview: ""
+      area: ""
+      // nextReview filter removed
     });
   };
 
@@ -254,7 +252,15 @@ export function ReferenceList({ list, onDelete }: Props) {
                     <div className="flex items-center justify-center gap-1">
                       <Calendar className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
                       <span className="text-xs">
-                        {formatDate(r.nextReview)}
+                        {(() => {
+                          if (!('fieldProgress' in r)) return "—";
+                          const allDates = Object.values((r as any).fieldProgress || {})
+                            .map((f: any) => f?.nextReview)
+                            .filter((d: any) => typeof d === "number" && d > 0);
+                          if (!allDates.length) return "—";
+                          const soonest = Math.min(...allDates);
+                          return formatDate(soonest);
+                        })()}
                       </span>
                     </div>
                   </td>

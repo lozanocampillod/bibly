@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { pickNextReference, calcSM2, FieldKey, pickFieldToGuess, SM2Reference } from "@/lib/spacedRepetition";
+import { pickNextReferenceField, updateFieldProgress, FieldKey, pickFieldToGuess, SM2Reference } from "@/lib/spacedRepetition";
 import { getReviewStats, loadReviewHistory, addReviewHistory, ReviewHistoryItem } from "@/lib/reviewStats";
 import { shuffle } from "@/utils/shuffle";
 import { Reference } from "@/components/ReferenceList";
 
 interface UseReviewSessionProps {
-  list: Reference[];
+  list: SM2Reference[];
   onUpdate: (list: SM2Reference[]) => void;
 }
 
@@ -22,7 +22,7 @@ export function useReviewSession({ list, onUpdate }: UseReviewSessionProps) {
   const [history, setHistory] = useState<ReviewHistoryItem[]>(() => loadReviewHistory());
 
   useEffect(() => {
-    const dueNow = !!pickNextReference(list);
+    const dueNow = !!pickNextReferenceField(list);
     if (done && dueNow) {
       setDone(false);
     }
@@ -30,7 +30,7 @@ export function useReviewSession({ list, onUpdate }: UseReviewSessionProps) {
 
   const startReview = () => {
     setModoLibre(false);
-    const next = pickNextReference(list);
+    const next = pickNextReferenceField(list);
     if (!next) {
       setDone(true);
       setReviewing(false);
@@ -39,8 +39,8 @@ export function useReviewSession({ list, onUpdate }: UseReviewSessionProps) {
       return;
     }
     setReviewing(true);
-    setCurrent(next);
-    setFieldToGuess(pickFieldToGuess(next));
+    setCurrent(next.ref);
+    setFieldToGuess(next.field);
     setAnswer("");
     setShowResult(false);
     setLastCorrect(null);
@@ -88,7 +88,7 @@ export function useReviewSession({ list, onUpdate }: UseReviewSessionProps) {
     const newHistory = addReviewHistory(history, hist);
     setHistory(newHistory);
     const updatedList = list.map(r =>
-      r.id === current.id ? calcSM2(r, grade) : r
+      r.id === current.id ? updateFieldProgress(r, fieldToGuess, grade) : r
     );
     onUpdate(updatedList);
     if (modoLibre) {
@@ -110,16 +110,17 @@ export function useReviewSession({ list, onUpdate }: UseReviewSessionProps) {
       setLastCorrect(null);
       return;
     }
-    const next = pickNextReference(updatedList);
-    if (!next) {
+    const nextRef = pickNextReferenceField(updatedList);
+    if (!nextRef) {
       setDone(true);
       setReviewing(false);
       setCurrent(null);
       setFieldToGuess(null);
       return;
     }
-    setCurrent(next);
-    setFieldToGuess(pickFieldToGuess(next));
+    
+    setCurrent(nextRef.ref);
+    setFieldToGuess(nextRef.field);
     setAnswer("");
     setShowResult(false);
     setLastCorrect(null);

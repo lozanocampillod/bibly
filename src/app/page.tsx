@@ -5,13 +5,12 @@ import { ReferenceList, Reference } from "@/components/ReferenceList";
 import { ReviewTab } from "@/components/ReviewTab";
 import { Tabs } from "@/components/Tabs";
 import ImportExportTab from "@/components/ImportExportTab";
+import { SM2Reference, initializeFieldProgress } from "@/lib/spacedRepetition";
 
-function nextReviewDate(interval: number) {
-  return Date.now() + interval * 24 * 60 * 60 * 1000;
-}
+
 
 export default function Home() {
-  const [list, setList] = useState<Reference[]>([]);
+  const [list, setList] = useState<SM2Reference[]>([]);
 
   // Cargar desde localStorage
   useEffect(() => {
@@ -26,17 +25,16 @@ export default function Home() {
 
   // Añadir nueva referencia
   const handleAdd = (form: ReferenceFormData) => {
-    const newRef: Reference = {
+    const newRef: SM2Reference = {
       ...form,
       id: crypto.randomUUID(),
-      nextReview: nextReviewDate(1),
-      interval: 1,
+      fieldProgress: initializeFieldProgress(),
     };
     setList([newRef, ...list]);
   };
 
   // Actualizar lista (usado por ReviewTab)
-  const handleUpdate = (newList: Reference[]) => {
+  const handleUpdate = (newList: SM2Reference[]) => {
     setList(newList);
   };
 
