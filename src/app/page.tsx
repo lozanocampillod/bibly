@@ -47,6 +47,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-start py-12 px-2">
+      <div className="flex items-center justify-center mb-4">
+        <span className="text-5xl font-bold text-primary">Bibly</span>
+      </div>
       <Tabs
         tabs={[
           { label: "References", key: "references" },
@@ -67,4 +70,3 @@ export default function Home() {
     </div>
   );
 }
-
