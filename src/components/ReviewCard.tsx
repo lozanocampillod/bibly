@@ -4,6 +4,112 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SM2Reference, FieldKey } from "@/lib/spacedRepetition";
 
+const formatAPACitation = (
+  reference: SM2Reference, 
+  fieldToGuess: FieldKey, 
+  answer: string, 
+  setAnswer: (a: string) => void,
+  handleCheck: () => void
+) => {
+  const { authors, year, title, publisher, area } = reference;
+  
+  // Format authors
+  const formatAuthors = (authorsStr: string) => {
+    const authorsList = authorsStr.split(' and ').map(a => a.trim());
+    if (authorsList.length === 1) return authorsList[0];
+    if (authorsList.length === 2) return authorsList.join(' & ');
+    return authorsList.slice(0, -1).join(', ') + ', & ' + authorsList[authorsList.length - 1];
+  };
+
+  // Build citation parts
+  const parts = [];
+  
+  // Author part
+  if (fieldToGuess === 'authors') {
+    parts.push(<span key="author-input" className="border-b-2 border-dashed border-primary">
+      <Input
+        value={answer}
+        onChange={(e) => setAnswer(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && handleCheck()}
+        className="inline-block w-48 h-6 px-1 py-0 border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0"
+        placeholder="Author(s)"
+        autoFocus
+      />
+    </span>);
+  } else {
+    parts.push(<span key="author">{formatAuthors(authors)}</span>);
+  }
+  
+  // Year part
+  parts.push(' (', 
+    fieldToGuess === 'year' ? 
+      <span key="year-input" className="border-b-2 border-dashed border-primary">
+        <Input
+          value={answer}
+          onChange={(e) => setAnswer(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleCheck()}
+          className="inline-block w-16 h-6 px-1 py-0 border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0"
+          placeholder="Year"
+          autoFocus
+        />
+      </span> : 
+      <span key="year">{year}</span>, 
+  '). ');
+  
+  // Title part (in italics for books)
+  parts.push(fieldToGuess === 'title' ? 
+    <span key="title-input" className="border-b-2 border-dashed border-primary">
+      <Input
+        value={answer}
+        onChange={(e) => setAnswer(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && handleCheck()}
+        className="inline-block w-full h-6 px-1 py-0 border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0"
+        placeholder="Title"
+        autoFocus
+      />
+    </span> : 
+    <span key="title" className="italic">{title}</span>
+  );
+  
+  // Publisher part
+  if (publisher) {
+    parts.push('. ');
+    parts.push(fieldToGuess === 'publisher' ? 
+      <span key="publisher-input" className="border-b-2 border-dashed border-primary">
+        <Input
+          value={answer}
+          onChange={(e) => setAnswer(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleCheck()}
+          className="inline-block w-48 h-6 px-1 py-0 border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0"
+          placeholder="Publisher"
+          autoFocus
+        />
+      </span> : 
+      <span key="publisher">{publisher}</span>
+    );
+  }
+  
+  // Area/Topic (as location for books, e.g., "City, State: Publisher")
+  if (area) {
+    parts.push(', ');
+    parts.push(fieldToGuess === 'area' ? 
+      <span key="area-input" className="border-b-2 border-dashed border-primary">
+        <Input
+          value={answer}
+          onChange={(e) => setAnswer(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleCheck()}
+          className="inline-block w-32 h-6 px-1 py-0 border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0"
+          placeholder="Area"
+          autoFocus
+        />
+      </span> : 
+      <span key="area">{area}</span>
+    );
+  }
+  
+  return parts;
+};
+
 interface ReviewCardProps {
   current: SM2Reference;
   fieldToGuess: FieldKey;
@@ -32,36 +138,26 @@ export function ReviewCard({
         <p className="text-sm text-muted-foreground font-normal mt-1">Active recall for long-term memory</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-muted/60 rounded-lg px-4 py-3 flex flex-col gap-1 border border-muted-foreground/10">
-            <span className="text-xs text-muted-foreground mb-1">Reference</span>
-            <span className="font-semibold text-base truncate" title={current.title}>{current.title}</span>
+        <div className="bg-muted/60 rounded-lg p-4 border border-muted-foreground/10 mb-4">
+          <div className="mb-4">
+            <p className="text-sm text-muted-foreground mb-2">Complete the missing field in this APA citation:</p>
+            <div className="bg-white p-4 rounded border border-muted-foreground/20">
+              <div className="space-y-2">
+                <p className="text-sm leading-relaxed">
+                  {formatAPACitation(current, fieldToGuess, answer, setAnswer, handleCheck)}
+                </p>
+              </div>
+            </div>
           </div>
-          <div className="bg-muted/60 rounded-lg px-4 py-3 flex flex-col gap-1 border border-muted-foreground/10">
-            <span className="text-xs text-muted-foreground mb-1">Field to guess</span>
-            <span className="inline-block px-2 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium w-fit">{fieldToGuess}</span>
+          <Button 
+                  size="sm" 
+                  className="w-full mt-2" 
+                  onClick={handleCheck}
+                >
+                  Check
+                </Button>
           </div>
-        </div>
-        <div className="flex flex-col gap-2">
-          <label className="font-semibold text-sm" htmlFor="review-answer">Your answer</label>
-          <Input
-            id="review-answer"
-            className="mb-1"
-            placeholder={`Type the ${fieldToGuess}...`}
-            value={answer}
-            onChange={e => setAnswer(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === "Enter" && !showResult) handleCheck();
-            }}
-            disabled={showResult}
-            autoFocus
-          />
-          {!showResult && (
-            <Button className="mt-1 w-full" onClick={handleCheck}>
-              Check
-            </Button>
-          )}
-        </div>
+
         {showResult && (
           <div className="flex flex-col gap-4 items-center">
             <div className="flex flex-col items-center gap-2">

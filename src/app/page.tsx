@@ -40,6 +40,11 @@ export default function Home() {
     setList(newList);
   };
 
+  // Eliminar una referencia
+  const handleDelete = (id: string) => {
+    setList(list.filter(item => item.id !== id));
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-start py-12 px-2">
       <Tabs
@@ -52,7 +57,7 @@ export default function Home() {
         {/* References Tab */}
         <div className="flex flex-col gap-4">
           <ReferenceForm onAdd={handleAdd} />
-          <ReferenceList list={list} />
+          <ReferenceList list={list} onDelete={handleDelete} />
         </div>
         {/* Review Tab */}
         <ReviewTab list={list} onUpdate={handleUpdate} />

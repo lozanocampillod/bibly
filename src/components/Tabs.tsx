@@ -58,7 +58,7 @@ export function Tabs({ tabs, children }: Props) {
           </button>
         ))}
       </div>
-      <div className="pt-2 w-full max-w-xl">
+      <div className="pt-2 w-full max-w-4xl">
         <div 
           role="tabpanel" 
           id={`tabpanel-${active}`}
